@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
 using static RainbowTableGenerator.Indents;
 
 namespace RainbowTableGenerator;
@@ -15,20 +13,21 @@ public class TableHandler
 
     public void GenerateRandomTable()
     {
-        var rainbowTable = new Dictionary<string, string>();
-
         for (int i = 0; i < TableLength; i++)
         {
+            // Generate first word in row
             string firstWord = GenerateRandomString();
             string hash = Utils.ComputeSHA256ASCIIHash(firstWord);
-            
-            string word;
 
+            // Iterate throw full chain length, reduce hash & repeat
             for (int j = 0; j < ChainLength; j++)
             {
-                word = ReduceHash(hash, j);
+                // Current computed word
+                var word = ReduceHash(hash, j);
                 hash = Utils.ComputeSHA256ASCIIHash(word);
 
+                // For test that table can find passwords in chain there is print of all "hidden"
+                // Prints all chain passwords
                 Utils.WriteColor($"Chain hidden password - {word}", ConsoleColor.Yellow);
             }
 
@@ -38,6 +37,7 @@ public class TableHandler
 
     public bool TryToGetPassword(string hashToCrack, out string password)
     {
+        // Iterate throw all table until get value or return with failure
         foreach (var chain in _table)
         {
             if (TryFindPasswordInChain(chain, hashToCrack, out password))
@@ -50,9 +50,11 @@ public class TableHandler
 
     private bool TryFindPasswordInChain(string chainWord, string hashToFind, out string password)
     {
+        // Recompute hash 
         string hash = Utils.ComputeSHA256ASCIIHash(chainWord);
         string word;
         
+        // Iterate throw all chain, recomputing hashes and trying to compare with income hash
         for (int j = 0; j < ChainLength; j++)
         {
             password = ReduceHash(hash, j);
@@ -66,9 +68,11 @@ public class TableHandler
         return false;
     }
 
+    // It's simple algorithm for perform reduction 
     private string ReduceHash(string hash, int index) =>
         hash.Substring(index % (hash.Length - WordLength + 1), WordLength);
 
+    // Generation random word
     private string GenerateRandomString()
     {
         var chars = Enumerable.Repeat(CharSet, WordLength)
